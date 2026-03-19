@@ -133,7 +133,7 @@ export async function POST(req: Request) {
       : {
           ok: false as const,
           message:
-            "通知先未設定のため送信をスキップしました（config/notifyTargets.json）。",
+            "通知先未設定のため送信をスキップしました（環境変数 NOTIFY_EMAILS）。",
         };
 
   const event = {
@@ -141,6 +141,19 @@ export async function POST(req: Request) {
     notifyResult: { ok: notify.ok, message: notify.message },
   };
   await appendScanEvent(event);
+
+  // Vercelログで通知失敗原因を追跡するための最小ログ
+  const toDomains = notifyEmails.map((e) => {
+    const at = e.indexOf("@");
+    return at >= 0 ? e.slice(at + 1).toLowerCase() : "unknown";
+  });
+
+  console.log("[/api/scan] notifyResult", {
+    ok: notify.ok,
+    message: notify.message,
+    notifyEmailCount: notifyEmails.length,
+    notifyEmailDomains: Array.from(new Set(toDomains)),
+  });
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }

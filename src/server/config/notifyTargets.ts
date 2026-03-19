@@ -1,43 +1,22 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
-type NotifyTargetsConfig = {
-  byPublicTagId?: Record<string, string[]>;
-};
-
-function getConfigPath() {
-  return (
-    process.env.NOTIFY_TARGETS_PATH?.trim() ||
-    path.join(process.cwd(), "config", "notifyTargets.json")
-  );
-}
-
-function normalizeEmails(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
+function normalizeEmails(input: string): string[] {
+  // `NOTIFY_EMAILS="a@b.com,c@d.com"` のような形式を想定
   const emails = input
-    .filter((v) => typeof v === "string")
+    .split(/[,\n]/g)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
   // 重複除去（順序維持）
   return emails.filter((v, i) => emails.indexOf(v) === i);
 }
 
-export async function getNotifyEmailsForTag(publicTagId: string): Promise<string[]> {
-  const configPath = getConfigPath();
-
-  try {
-    const raw = await fs.readFile(configPath, "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return [];
-
-    const cfg = parsed as NotifyTargetsConfig;
-    const by = cfg.byPublicTagId;
-    if (!by || typeof by !== "object") return [];
-
-    return normalizeEmails((by as Record<string, unknown>)[publicTagId]);
-  } catch {
-    // ファイル未作成/JSON不正などは「未設定」として扱い、安全にスキップできるようにする
-    return [];
-  }
+/**
+ * MVP用: publicTagId ごとの分岐は一旦不要にし、環境変数 `NOTIFY_EMAILS` だけを返す。
+ * - 個人情報をコード本体に残さない目的に合わせる
+ */
+export async function getNotifyEmailsForTag(
+  _publicTagId: string,
+): Promise<string[]> {
+  const raw = process.env.NOTIFY_EMAILS?.trim();
+  if (!raw) return [];
+  return normalizeEmails(raw);
 }
 

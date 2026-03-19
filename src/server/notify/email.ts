@@ -17,6 +17,15 @@ function env(name: string) {
 export async function sendEmail(
   input: EmailNotifyInput,
 ): Promise<EmailNotifyResult> {
+  const toDomains = input.to
+    .map((e) => e.trim())
+    .filter(Boolean)
+    .map((e) => {
+      const at = e.indexOf("@");
+      return at >= 0 ? e.slice(at + 1).toLowerCase() : "unknown";
+    });
+  const uniqueDomains = Array.from(new Set(toDomains));
+
   const host = env("SMTP_HOST");
   const portRaw = env("SMTP_PORT");
   const user = env("SMTP_USER");
@@ -24,6 +33,12 @@ export async function sendEmail(
   const from = env("MAIL_FROM") || user;
 
   if (!host || !portRaw || !from) {
+    console.error("[sendEmail] SMTP設定不足", {
+      host: Boolean(host),
+      port: Boolean(portRaw),
+      from: Boolean(from),
+      toDomains: uniqueDomains,
+    });
     return {
       ok: false,
       message:
@@ -33,8 +48,17 @@ export async function sendEmail(
 
   const port = Number(portRaw);
   if (!Number.isFinite(port) || port <= 0) {
+    console.error("[sendEmail] SMTP_PORT不正", { portRaw, toDomains: uniqueDomains });
     return { ok: false, message: "SMTP_PORT が不正です。" };
   }
+
+  console.log("[sendEmail] sending mail", {
+    host,
+    port,
+    secure: port === 465,
+    hasAuth: Boolean(user && pass),
+    toDomains: uniqueDomains,
+  });
 
   const transporter = nodemailer.createTransport({
     host,
@@ -51,9 +75,17 @@ export async function sendEmail(
       text: input.text,
     });
 
+    console.log("[sendEmail] send ok", {
+      hasMessageId: Boolean(info.messageId),
+      toDomains: uniqueDomains,
+    });
     return { ok: true, message: `sent:${info.messageId || "ok"}` };
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown error";
+    console.error("[sendEmail] send failed", {
+      toDomains: uniqueDomains,
+      error: message,
+    });
     return { ok: false, message };
   }
 }

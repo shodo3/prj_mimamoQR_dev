@@ -53,27 +53,14 @@ MAIL_FROM=from@example.com
 - `SMTP_USER/SMTP_PASS` は必要なSMTP環境のみ設定してください
 - 未設定の場合は送信をスキップし、`notifyResult` に理由が残ります
 
-## 通知先メールアドレス（分離設定）
+## 通知先メールアドレス（環境変数）
 
-通知先は **コード本体から分離**し、`config/notifyTargets.json` から読み込みます（このファイルは `.gitignore` 済み）。
+通知先はコード本体から分離し、`NOTIFY_EMAILS` 環境変数で設定します。
 
-1. `config/notifyTargets.example.json` を参考に、`config/notifyTargets.json` を作成
-2. `publicTagId` ごとに通知先メールを設定
+- 形式: `NOTIFY_EMAILS="test@example.com,another@example.com"`
+- 区切り: `,` または改行
 
-例:
-
-```json
-{
-  "byPublicTagId": {
-    "tag_7f2c9d4a1b8e": ["test@example.com"]
-  }
-}
-```
-
-補足:
-
-- `config/notifyTargets.json` が未作成/不正JSON/対象IDが未設定の場合、通知は **安全にスキップ**され `notifyResult` に理由が残ります
-- パスを変えたい場合は `NOTIFY_TARGETS_PATH` で上書きできます
+`NOTIFY_EMAILS` が未設定の場合、通知は **安全にスキップ**され `notifyResult` に理由が残ります。
 
 ## データ保存
 
