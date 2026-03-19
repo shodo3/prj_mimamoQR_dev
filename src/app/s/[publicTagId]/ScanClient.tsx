@@ -105,7 +105,14 @@ export function ScanClient(props: { publicTagId: string }) {
         if (cancelled) return;
 
         if (res.ok) {
-          router.replace("/done");
+          const d = new Date();
+          const hh = String(d.getHours()).padStart(2, "0");
+          const mm = String(d.getMinutes()).padStart(2, "0");
+          const timeStr = `${hh}:${mm}`;
+          const locFlag = loc.ok ? "1" : "0";
+          router.replace(
+            `/done?t=${encodeURIComponent(timeStr)}&loc=${locFlag}`,
+          );
           return;
         }
 
