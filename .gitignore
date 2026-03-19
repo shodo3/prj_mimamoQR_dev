@@ -17,6 +17,13 @@
 /.next/
 /out/
 
+# runtime data (contains scan events / location)
+/data/*.jsonl
+!/data/.gitkeep
+
+# notify targets (contains email addresses)
+/config/notifyTargets.json
+
 # production
 /build
 

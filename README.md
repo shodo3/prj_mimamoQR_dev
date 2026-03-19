@@ -1,3 +1,104 @@
+# QRスキャン通知システム（STEP0-MVP）
+
+子どもが持つQRコードを、訪問先の保護者や習い事の担当者がスマホで読み取るだけで、保護者へ通知を送る最小MVPです。  
+本MVPでは **個人情報（氏名・住所・学校名など）は一切登録・表示しません**。
+
+## できること（今回のScope）
+
+- **入口ページ**: `/s/[publicTagId]`
+  - ページ表示時に位置情報取得を試行
+  - 位置あり/なしどちらでも `POST /api/scan` へ送信
+  - 送信成功後 `/done` へ遷移
+- **完了画面**: `/done`
+- **無効QRの最小表示**
+- **Scan API**: `POST /api/scan`
+  - `publicTagId` 妥当性確認 → イベント保存 → メール通知
+- **最小データ保持**
+  - `src/config/tags.ts` に公開ID（有効/無効）をファイル定義
+  - 通知先メールは `config/notifyTargets.json`（git除外）で管理
+  - `data/scanEvents.jsonl` にスキャンイベントをJSONLで保存
+
+## セットアップ
+
+```bash
+npm install
+```
+
+## 起動
+
+```bash
+npm run dev -- --port 3000
+```
+
+## QRに埋め込むURL
+
+例:
+
+- `http://localhost:3000/s/tag_7f2c9d4a1b8e`
+
+有効な `publicTagId` は `src/config/tags.ts` で管理します（**個人情報を入れない**こと）。
+
+## メール通知（SMTP）
+
+`.env.local` を作成し、以下を設定してください。
+
+```bash
+SMTP_HOST=your.smtp.host
+SMTP_PORT=587
+SMTP_USER=your_user_optional
+SMTP_PASS=your_pass_optional
+MAIL_FROM=from@example.com
+```
+
+- `SMTP_USER/SMTP_PASS` は必要なSMTP環境のみ設定してください
+- 未設定の場合は送信をスキップし、`notifyResult` に理由が残ります
+
+## 通知先メールアドレス（分離設定）
+
+通知先は **コード本体から分離**し、`config/notifyTargets.json` から読み込みます（このファイルは `.gitignore` 済み）。
+
+1. `config/notifyTargets.example.json` を参考に、`config/notifyTargets.json` を作成
+2. `publicTagId` ごとに通知先メールを設定
+
+例:
+
+```json
+{
+  "byPublicTagId": {
+    "tag_7f2c9d4a1b8e": ["test@example.com"]
+  }
+}
+```
+
+補足:
+
+- `config/notifyTargets.json` が未作成/不正JSON/対象IDが未設定の場合、通知は **安全にスキップ**され `notifyResult` に理由が残ります
+- パスを変えたい場合は `NOTIFY_TARGETS_PATH` で上書きできます
+
+## データ保存
+
+- 保存先: `data/scanEvents.jsonl`
+- 位置情報を含むため、gitには含めません（`.gitignore` 済み）
+
+## 主要API
+
+### `POST /api/scan`
+
+受信:
+
+- `publicTagId` (string)
+- `lat?` (number)
+- `lng?` (number)
+- `accuracy?` (number)
+- `locationStatus` ("granted" | "denied" | "unavailable" | "timeout" | "error")
+- `clientTimestamp` (ISO string)
+
+レスポンス:
+
+- `200`: 保存・通知処理（通知は失敗/スキップでも `ok: true` を返す）
+- `404`: 無効な `publicTagId`
+- `400`: リクエスト不正
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
