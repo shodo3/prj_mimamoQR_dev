@@ -1,58 +1,19 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
-export type LocationStatus =
-  | "granted"
-  | "denied"
-  | "unavailable"
-  | "timeout"
-  | "error";
-
-export type ScanEvent = {
+type SaveScanEventInput = {
   id: string;
-  publicTagId: string;
   serverTimestamp: string;
+  publicTagId: string;
   clientTimestamp: string;
-  locationStatus: LocationStatus;
+  locationStatus: string;
   lat?: number;
   lng?: number;
   accuracy?: number;
   mapUrl?: string;
-  notifyResult?: {
-    ok: boolean;
-    message?: string;
-  };
+  notifyResult?: unknown;
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const EVENTS_FILE = path.join(DATA_DIR, "scanEvents.jsonl");
-
-function nowIso() {
-  return new Date().toISOString();
+export async function saveScanEvent(event: SaveScanEventInput) {
+  // Vercelではローカルファイル保存を行わない。
+  // MVP段階ではログ出力のみで通し、通知導線の検証を優先する。
+  console.log("[scanEvent]", JSON.stringify(event));
+  return { ok: true };
 }
-
-function newId() {
-  // crypto.randomUUID() が利用できる環境を前提（Node 18+）
-  return globalThis.crypto.randomUUID();
-}
-
-export function buildMapUrl(lat: number, lng: number) {
-  const q = `${lat},${lng}`;
-  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&z=17`;
-}
-
-export function createScanEvent(
-  input: Omit<ScanEvent, "id" | "serverTimestamp">,
-): ScanEvent {
-  return {
-    id: newId(),
-    serverTimestamp: nowIso(),
-    ...input,
-  };
-}
-
-export async function appendScanEvent(event: ScanEvent): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.appendFile(EVENTS_FILE, `${JSON.stringify(event)}\n`, "utf8");
-}
-
