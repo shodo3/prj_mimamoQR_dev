@@ -127,7 +127,7 @@ export async function POST(req: Request) {
     notifyEmails.length > 0
       ? await sendEmail({
           to: notifyEmails,
-          subject: "【QRscan】スキャン通知",
+          subject: "【mimamoQR】スキャン通知",
           text,
         })
       : {
